@@ -25,18 +25,18 @@ class MyDecisionTreeClassifier:
         classes in each group result in a Gini score of 0.5
         (for a 2 class problem).
         '''
+        gini_impurity = 0
         all_samples = sum([len(group) for group in groups])
-        gini = 0
         for group in groups:
-            quantity = len(group)
-            if quantity:
-                ans_sq = 0
+            if group:
+                quantity = len(group)
+                ans_sq = []
                 for needed_value in classes:
                     all_results = [el[-1] for el in group if el[-1] == needed_value]
                     probability = len(all_results) / quantity
-                    ans_sq += probability**2
-                gini += (1.0 - ans_sq) * (quantity / all_samples)
-        return gini
+                    ans_sq.append(probability**2)
+                gini_impurity += (1.0 - sum(ans_sq)) * (quantity / all_samples)
+        return gini_impurity
  
 
     def split_data(self, X, y): #-> tuple[int, int]:
