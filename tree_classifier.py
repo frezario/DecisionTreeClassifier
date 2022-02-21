@@ -1,10 +1,8 @@
 '''
     A module that implements TreeClassifier class.
 '''
-from cgi import print_directory
 import numpy as np
 from sklearn import datasets
-from sklearn.model_selection import train_test_split
 
 
 class Node:
@@ -20,38 +18,45 @@ class Node:
 
 
 class DecisionTree:
+    """
+        A decisiomn tree classifier.
+    """
     def __init__(self, max_depth=15):
         self.max_depth = max_depth
         self.root = None
 
-    def _is_finished(self, depth):
+
+    def __is_finished(self, depth):
         if (depth >= self.max_depth
             or self.n_class_labels == 1
                 or self.samples_count < 2):
             return True
         return False
 
-    def _build_tree(self, dataset, target, depth=0):
+
+    def __build_tree(self, dataset, target, depth=0):
         self.samples_count, self.features_count = dataset.shape
         self.n_class_labels = len(set(target))
 
-        if self._is_finished(depth):
+        if self.__is_finished(depth):
             most_common_Label = np.argmax(np.bincount(target))
             return Node(value=most_common_Label)
 
         rnd_feats = np.random.choice(
             self.features_count, self.features_count, replace=False)
-        best_feat, best_thresh = self._best_split(dataset, target, rnd_feats)
+        best_feat, best_thresh = self.__best_split(dataset, target, rnd_feats)
         left_part, right_part = self.__split_data(
             dataset[:, best_feat], best_thresh)
-        left_child = self._build_tree(
+        left_child = self.__build_tree(
             dataset[left_part, :], target[left_part], depth + 1)
-        right_child = self._build_tree(
+        right_child = self.__build_tree(
             dataset[right_part, :], target[right_part], depth + 1)
         return Node(best_feat, best_thresh, left_child, right_child)
 
+
     def fit(self, dataset, target):
-        self.root = self._build_tree(dataset, target)
+        self.root = self.__build_tree(dataset, target)
+
 
     def gini_impurity(self, target):
         proportions = np.bincount(target) / len(target)
@@ -59,10 +64,12 @@ class DecisionTree:
         gini = 1 - np.sum([p*p for p in proportions])
         return gini
 
+
     def __split_data(self, dataset, thresh):
         left_part = np.argwhere(dataset <= thresh).flatten()
         right_part = np.argwhere(dataset > thresh).flatten()
         return left_part, right_part
+
 
     def __information_gain(self, dataset, target, thresh):
         parent_impurity = self.gini_impurity(target)
@@ -77,19 +84,22 @@ class DecisionTree:
             (cnt_right / cnt) * self.gini_impurity(target[right_part])
         return parent_impurity - child_impurity
 
-    def _best_split(self, dataset, target, features):
-        split = {'score': - 1, 'feat': None, 'thresh': None}
-        for feat in features:
-            X_feat = dataset[:, feat]
-            thresholds = np.unique(X_feat)
-            for thresh in thresholds:
-                score = self.__information_gain(X_feat, target, thresh)
-                if score > split['score']:
-                    split['score'] = score
-                    split['feat'] = feat
-                    split['thresh'] = thresh
 
-        return split['feat'], split['thresh']
+    def __best_split(self, dataset, target, features):
+        # split list is in format [score, feature, treshhold]
+        split = [-1, None, None]
+        for feat in features:
+            feature = dataset[:, feat]
+            thresholds = np.unique(feature)
+            for thresh in thresholds:
+                score = self.__information_gain(feature, target, thresh)
+                if score > split[0]:
+                    split[0] = score
+                    split[1] = feat
+                    split[2] = thresh
+
+        return split[1], split[2]
+
 
     def traverse(self, piece_of_data, node: Node):
         """
@@ -110,9 +120,10 @@ class DecisionTree:
         # To the right otherwise
         return self.traverse(piece_of_data, node.right)
 
+
     def predict(self, dataset):
         """
-            For each row in dataset dataset (who the fuck names dataset dataset???), funtions
+            For each row in dataset, funtions
             traverses our tree to get to the leaf node. Then, the array of the
             values of each leaf will be returned
         Args:
@@ -121,7 +132,7 @@ class DecisionTree:
             np.array: _description_
         """
         predictions = [self.traverse(dataset, self.root)
-                       for dataset in dataset]
+                       for data in dataset]
         # return predictions
         return np.array(predictions)
 
@@ -135,6 +146,7 @@ class DecisionTree:
               f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
+
 
 clf = DecisionTree(max_depth=10)
 
