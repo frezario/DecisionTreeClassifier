@@ -47,11 +47,12 @@ class DecisionTree:
         best_feat, best_thresh = self.split_data(dataset, target)
         left_part, right_part = self.__split_data(
             dataset[:, best_feat], best_thresh)
-        left_child = self.__build_tree(
-            dataset[left_part, :], target[left_part], depth + 1)
-        right_child = self.__build_tree(
-            dataset[right_part, :], target[right_part], depth + 1)
-        return Node(best_feat, best_thresh, left_child, right_child)
+        if left_part and right_part:
+            left_child = self.__build_tree(
+                dataset[left_part, :], target[left_part], depth + 1)
+            right_child = self.__build_tree(
+                dataset[right_part, :], target[right_part], depth + 1)
+            return Node(best_feat, best_thresh, left_child, right_child)
 
 
     def fit(self, dataset, target):
