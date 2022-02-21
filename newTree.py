@@ -50,7 +50,7 @@ class DecisionTree:
         #     dataset[:, best_feat], best_thresh)
         
         
-        left_part, right_part = self.split_data(dataset, target)
+        left_part, right_part, best_feat = self.split_data(dataset, target)
         left_child = self.__build_tree(
             dataset[left_part, :], target[left_part], depth + 1)
         right_child = self.__build_tree(
@@ -115,7 +115,7 @@ class DecisionTree:
                 if gini < best_gini:
                     # best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
                     best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
-        return best_groups
+        return best_groups[0], best_groups[1], best_index
 
 
     def fit(self, dataset, target):
