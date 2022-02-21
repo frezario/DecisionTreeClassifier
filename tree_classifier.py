@@ -134,18 +134,6 @@ class MyDecisionTreeClassifier:
         return best_idx, best_thr
 
 
-    def build_tree(self, X, y, depth = 0):
-        # create a root node
-        # recursively split until max depth is not exeeced
-        # create a root node, continue recursively and stop if depth is exceeded
-
-        pass
-    
-    def fit(self, X, y):
-        # basically wrapper for build tree
-        
-        pass
-
     def traverse(self, piece_of_data, node:Node):
         """
             Traverses the tree right to the leaf recursively.
@@ -179,6 +167,14 @@ class MyDecisionTreeClassifier:
         # return predictions
         return np.array(predictions)
 
+    @staticmethod
+    def print_tree(node:Node, depth=0):
+        if node.is_leaf():
+            print('\t' * depth + f'This node is a leaf. It\'s value is {node.value}.')
+            return
+        print('\t' * depth + f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
+        DecisionTree.print_tree(node.left, depth+1)
+        DecisionTree.print_tree(node.right, depth+1)
 
 
     def test_split(ind, pivot, dataset):
