@@ -19,71 +19,94 @@ class Node:
 
 class DecisionTree:
     """
-        A decisiomn tree classifier.
+        A decision tree classifier class.
     """
+
     def __init__(self, max_depth=15):
+        """
+            A constructor.
+        Args:
+            max_depth (int, optional): a maximum height to continue build a tree. Defaults to 15.
+        """
         self.max_depth = max_depth
         self.root = None
-
+        self.samples_count = 0
+        self.features_count = 0
+        self.class_count = 0
 
     def __is_finished(self, depth):
-        if (depth >= self.max_depth
-            or self.n_class_labels == 1
-                or self.samples_count < 2):
+        '''
+            Returns True if no division can be done and False otherwise.
+            (if there is one class only or if max depth exceeded or if
+            threre is less or equal than one samples.)
+        '''
+        if (self.class_count == 1
+            or depth >= self.max_depth
+                or self.samples_count <= 1):
             return True
         return False
 
-
     def __build_tree(self, dataset, target, depth=0):
+        """
+            Builds a best possible tree recursively.
+            If tree is finished, returns a leaf (a Node with a value).
+        Args:
+            dataset (_type_): a dataset
+            target (_type_): classses
+            depth (int, optional): a depth of recursion. Defaults to 0.
+        """    
         self.samples_count, self.features_count = dataset.shape
-        self.n_class_labels = len(set(target))
+        self.class_count = len(set(target))
 
         if self.__is_finished(depth):
-            most_common_Label = np.argmax(np.bincount(target))
-            return Node(value=most_common_Label)
+            most_common_class = np.argmax(np.bincount(target))
+            return Node(value=most_common_class)
 
-        rnd_feats = np.random.choice(
+        rand_featuress = np.random.choice(
             self.features_count, self.features_count, replace=False)
-        best_feat, best_thresh = self.__best_split(dataset, target, rnd_feats)
+        best_feature, best_threshold = self.__best_split(dataset, target, rand_featuress)
         left_part, right_part = self.__split_data(
-            dataset[:, best_feat], best_thresh)
+            dataset[:, best_feature], best_threshold)
         left_child = self.__build_tree(
             dataset[left_part, :], target[left_part], depth + 1)
         right_child = self.__build_tree(
             dataset[right_part, :], target[right_part], depth + 1)
-        return Node(best_feat, best_thresh, left_child, right_child)
-
+        return Node(best_feature, best_threshold, left_child, right_child)
 
     def fit(self, dataset, target):
         self.root = self.__build_tree(dataset, target)
 
-
     def gini_impurity(self, target):
+        '''
+            Calculates the gini impurity for a certain target.
+        '''
         proportions = np.bincount(target) / len(target)
-        # gini = -np.sum([p * np.log2(p) for p in proportions if p > 0])
         gini = 1 - np.sum([p*p for p in proportions])
         return gini
 
-
-    def __split_data(self, dataset, thresh):
-        left_part = np.argwhere(dataset <= thresh).flatten()
-        right_part = np.argwhere(dataset > thresh).flatten()
+    def __split_data(self, dataset, threshold):
+        '''
+            Splits samples via threshold.
+        '''
+        left_part = np.argwhere(dataset <= threshold).flatten()
+        right_part = np.argwhere(dataset > threshold).flatten()
         return left_part, right_part
 
-
-    def __information_gain(self, dataset, target, thresh):
+    def __information_gain(self, dataset, target, threshold):
+        '''
+            Measures information gain (the measure of how much
+            impurity we've lost).
+        '''
         parent_impurity = self.gini_impurity(target)
-        left_part, right_part = self.__split_data(dataset, thresh)
-        cnt, cnt_left, cnt_right = len(target), \
-            len(left_part), len(right_part)
-
+        left_part, right_part = self.__split_data(dataset, threshold)
+        cnt, cnt_left, cnt_right = len(target), len(left_part), len(right_part)
+        # The worst case
         if cnt_left == 0 or cnt_right == 0:
             return 0
-
+        # Gain = 1 - gini(split)
         child_impurity = (cnt_left / cnt) * self.gini_impurity(target[left_part]) + \
             (cnt_right / cnt) * self.gini_impurity(target[right_part])
         return parent_impurity - child_impurity
-
 
     def __best_split(self, dataset, target, features):
         # split list is in format [score, feature, treshhold]
@@ -91,15 +114,14 @@ class DecisionTree:
         for feat in features:
             feature = dataset[:, feat]
             thresholds = np.unique(feature)
-            for thresh in thresholds:
-                score = self.__information_gain(feature, target, thresh)
+            for threshold in thresholds:
+                score = self.__information_gain(feature, target, threshold)
+                # if we found best case, we will accept it.
                 if score > split[0]:
                     split[0] = score
                     split[1] = feat
-                    split[2] = thresh
-
+                    split[2] = threshold
         return split[1], split[2]
-
 
     def traverse(self, piece_of_data, node: Node):
         """
@@ -120,20 +142,18 @@ class DecisionTree:
         # To the right otherwise
         return self.traverse(piece_of_data, node.right)
 
-
     def predict(self, dataset):
         """
-            For each row in dataset, funtions
-            traverses our tree to get to the leaf node. Then, the array of the
-            values of each leaf will be returned
+            For each row in dataset, funtiontraverses our tree to get 
+            to the leaf node. Then, the array of the
+            values of each leaf will be returned.
         Args:
             dataset (iterable of iterables): a dataset. May be an array of arrays.
         Returns:
             np.array: _description_
         """
         predictions = [self.traverse(dataset, self.root)
-                       for data in dataset]
-        # return predictions
+                       for dataset in dataset]
         return np.array(predictions)
 
     @staticmethod
