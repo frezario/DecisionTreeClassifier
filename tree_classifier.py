@@ -2,15 +2,15 @@ from numpy import inf
 
 
 class Node:
+    def __init__(self, feature=None, threshold=None, left=None, right=None, *, value=None):
+        self.feature = feature
+        self.threshold = threshold
+        self.left = left
+        self.right = right
+        self.value = value
 
-    def __init__(self, X, y, gini):
-        self.X = X
-        self.y = y
-        self.gini = gini
-        self.feature_index = 0
-        self.threshold = 0
-        self.left = None
-        self.right = None
+    def is_leaf(self):
+        return self.value is not None
 
     def gini(self, groups, classes):
         '''
@@ -146,12 +146,39 @@ class MyDecisionTreeClassifier:
         
         pass
 
-    def predict(self, X_test):
-        # traverse the tree while there is left node
-        # and return the predicted class for it, 
-        # note that X_test can be not only one example
+    def traverse(self, piece_of_data, node:Node):
+        """
+            Traverses the tree right to the leaf recursively.
+        Args:
+            piece_of_data (_type_): an array of features.
+            node (Node): a node to start a traversal.
+        Returns:
+            an affiliation class: a result of classifying an object.
+        """
+        # If node is a leaf, we will return it's value and finish.
+        if node.is_leaf():
+            return node.value
+        # Otherwise, we will go to subtrees
+        if piece_of_data[node.feature] <= node.threshold:
+            # To the left, if our feature is less then a treshold
+            return self.traverse(piece_of_data, node.left)
+        # To the right otherwise
+        return self.traverse(piece_of_data, node.right)
 
-        pass
+    def predict(self, X):
+        """
+            For each row in dataset X (who the fuck names dataset X???), funtions
+            traverses our tree to get to the leaf node. Then, the array of the
+            values of each leaf will be returned
+        Args:
+            X (iterable of iterables): a dataset. May be an array of arrays.
+        Returns:
+            np.array: _description_
+        """
+        predictions = [self.traverse(x, self.root) for x in X]
+        # return predictions
+        return np.array(predictions)
+
 
 
     def test_split(ind, pivot, dataset):
