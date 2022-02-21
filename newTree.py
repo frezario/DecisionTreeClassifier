@@ -1,7 +1,9 @@
 '''
     A module that implements TreeClassifier class.
 '''
-import numpy as np
+import numpy as 
+from numpy import inf
+
 # from sklearn import datasets
 
 
@@ -173,9 +175,9 @@ class DecisionTree:
 
 clf = DecisionTree(max_depth=10)
 
-# data = datasets.load_iris()
-# dataset, target = data['data'], data['target']
-# clf.fit(dataset, target)
-# clf.print_tree(clf.root)
-# print(clf.predict(dataset))
+data = datasets.load_iris()
+dataset, target = data['data'], data['target']
+clf.fit(dataset, target)
+clf.print_tree(clf.root)
+print(clf.predict(dataset))
 
