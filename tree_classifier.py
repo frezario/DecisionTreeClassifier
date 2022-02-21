@@ -54,34 +54,41 @@ class DecisionTree:
             dataset (_type_): a dataset
             target (_type_): classses
             depth (int, optional): a depth of recursion. Defaults to 0.
-        """    
+        """
         self.samples_count, self.features_count = dataset.shape
         self.class_count = len(set(target))
 
         if self.__is_finished(depth):
             most_common_class = np.argmax(np.bincount(target))
             return Node(value=most_common_class)
-
-        rand_featuress = np.random.choice(
+        # picking random order of the features
+        rand_features = np.random.choice(
             self.features_count, self.features_count, replace=False)
-        best_feature, best_threshold = self.__best_split(dataset, target, rand_featuress)
+        # creating a split on this node
+        best_feature, best_threshold = self.__best_split(dataset, target, rand_features)
+        # splitting samples into right and left parts
         left_part, right_part = self.__split_data(
             dataset[:, best_feature], best_threshold)
+        # building left subtree
         left_child = self.__build_tree(
             dataset[left_part, :], target[left_part], depth + 1)
+        # building right subtree
         right_child = self.__build_tree(
             dataset[right_part, :], target[right_part], depth + 1)
         return Node(best_feature, best_threshold, left_child, right_child)
 
     def fit(self, dataset, target):
+        '''
+            A public wrapper for __build_tree() method.
+        '''
         self.root = self.__build_tree(dataset, target)
 
     def gini_impurity(self, target):
         '''
             Calculates the gini impurity for a certain target.
         '''
-        proportions = np.bincount(target) / len(target)
-        gini = 1 - np.sum([p*p for p in proportions])
+        probabilities = np.bincount(target) / len(target)
+        gini = 1 - np.sum([p*p for p in probabilities])
         return gini
 
     def __split_data(self, dataset, threshold):
@@ -97,18 +104,21 @@ class DecisionTree:
             Measures information gain (the measure of how much
             impurity we've lost).
         '''
-        parent_impurity = self.gini_impurity(target)
+        impurity_before = self.gini_impurity(target)
         left_part, right_part = self.__split_data(dataset, threshold)
         cnt, cnt_left, cnt_right = len(target), len(left_part), len(right_part)
         # The worst case
         if cnt_left == 0 or cnt_right == 0:
             return 0
         # Gain = 1 - gini(split)
-        child_impurity = (cnt_left / cnt) * self.gini_impurity(target[left_part]) + \
+        impurity_after = (cnt_left / cnt) * self.gini_impurity(target[left_part]) + \
             (cnt_right / cnt) * self.gini_impurity(target[right_part])
-        return parent_impurity - child_impurity
+        return impurity_before - impurity_after
 
     def __best_split(self, dataset, target, features):
+        '''
+            Returns info about split with highest information gain.
+        '''
         # split list is in format [score, feature, treshhold]
         split = [-1, None, None]
         for feat in features:
@@ -116,7 +126,7 @@ class DecisionTree:
             thresholds = np.unique(feature)
             for threshold in thresholds:
                 score = self.__information_gain(feature, target, threshold)
-                # if we found best case, we will accept it.
+                # if we found better case, we will accept it.
                 if score > split[0]:
                     split[0] = score
                     split[1] = feat
@@ -144,13 +154,13 @@ class DecisionTree:
 
     def predict(self, dataset):
         """
-            For each row in dataset, funtiontraverses our tree to get 
+            For each row in dataset, funtion traverses our tree to get
             to the leaf node. Then, the array of the
             values of each leaf will be returned.
         Args:
             dataset (iterable of iterables): a dataset. May be an array of arrays.
         Returns:
-            np.array: _description_
+            np.array: a prediction for this dataset
         """
         predictions = [self.traverse(dataset, self.root)
                        for dataset in dataset]
@@ -158,12 +168,15 @@ class DecisionTree:
 
     @staticmethod
     def print_tree(node: Node, depth=0):
+        '''
+            Prints a tree recursively.
+        '''
         if node.is_leaf():
             print('\t' * depth +
-                  f'This node is a leaf. It\'s value is {node.value}.')
+                  f'This node is a leaf. Value : {node.value}.')
             return
         print('\t' * depth +
-              f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
+              f'This node is internal. Feature : {node.feature} Treshhold : {node.threshold}.')
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
 
@@ -173,5 +186,5 @@ clf = DecisionTree(max_depth=10)
 data = datasets.load_iris()
 dataset, target = data['data'], data['target']
 clf.fit(dataset, target)
-# clf.print_tree(clf.root)
+clf.print_tree(clf.root)
 print(clf.predict(dataset))
