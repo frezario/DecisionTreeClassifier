@@ -1,8 +1,10 @@
 '''
     A module that implements TreeClassifier class.
 '''
+from turtle import left
 import numpy as np
 from sklearn import datasets
+from numpy import inf
 
 
 class Node:
@@ -35,12 +37,19 @@ class DecisionTree:
 
 
     def __build_tree(self, dataset, target, depth=0):
-        self.samples_count, self.features_count = dataset.shape
-        self.n_class_labels = len(set(target))
-
+        dataset = np.array(dataset)
+        print(dataset)
+        if dataset == np.array([]):
+            self.samples_count, self.features_count = 0, 0
+        else:
+            self.samples_count, self.features_count = dataset.shape
+            self.n_class_labels = len(set(target))
         if self.__is_finished(depth):
             most_common_Label = np.argmax(np.bincount(target))
             return Node(value=most_common_Label)
+        # if self.__is_finished(depth):
+        #     most_common_Label = np.argmax(np.bincount(target))
+        #     return Node(value=most_common_Label)
 
 
         # rnd_feats = np.random.choice(
@@ -50,11 +59,11 @@ class DecisionTree:
         #     dataset[:, best_feat], best_thresh)
         
         
-        left_part, right_part, best_feat = self.split_data(dataset, target)
+        left_part, right_part, best_feat, best_thresh = self.split_data(dataset, target)
         left_child = self.__build_tree(
-            dataset[left_part, :], target[left_part], depth + 1)
+            left_part, list(set([row[-1] for row in left_part])), depth + 1)
         right_child = self.__build_tree(
-            dataset[right_part, :], target[right_part], depth + 1)
+            right_part, list(set([row[-1] for row in right_part])), depth + 1)
         return Node(best_feat, best_thresh, left_child, right_child)
 
     def gini(self, groups, target):
@@ -78,7 +87,7 @@ class DecisionTree:
                 quantity = len(column)
                 ans_sq = []
                 for needed_value in target:
-                    print(f"Group: {column}")
+                    # print(f"Group: {column}")
                     all_results = [el[-1] for el in column if el[-1] == needed_value]
                     probability = len(all_results) / quantity
                     ans_sq.append(probability**2)
@@ -115,7 +124,7 @@ class DecisionTree:
                 if gini < best_gini:
                     # best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
                     best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
-        return best_groups[0], best_groups[1], best_index
+        return best_groups[0], best_groups[1], best_index, pivot_value
 
 
     def fit(self, dataset, target):
@@ -167,3 +176,12 @@ class DecisionTree:
               f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
+
+
+clf = DecisionTree(max_depth=10)
+
+data = datasets.load_iris()
+dataset, target = data['data'], data['target']
+clf.fit(dataset, target)
+# clf.print_tree(clf.root)
+print(clf.predict(dataset))
