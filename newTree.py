@@ -2,9 +2,7 @@
     A module that implements TreeClassifier class.
 '''
 import numpy as np
-from numpy import inf
-
-# from sklearn import datasets
+from sklearn import datasets
 
 
 class Node:
@@ -44,24 +42,20 @@ class DecisionTree:
             most_common_Label = np.argmax(np.bincount(target))
             return Node(value=most_common_Label)
 
+
         # rnd_feats = np.random.choice(
         #     self.features_count, self.features_count, replace=False)
-        best_feat, best_thresh = self.split_data(dataset, target)
-        left_part, right_part = self.__split_data(
-            dataset[:, best_feat], best_thresh)
-        if left_part and right_part:
-            if len(left_part) >= 2:
-                left_child = self.__build_tree(
-                    dataset[left_part, :], target[left_part], depth + 1)
-            if len(right_part) >= 2:
-                right_child = self.__build_tree(
-                    dataset[right_part, :], target[right_part], depth + 1)
-            return Node(best_feat, best_thresh, left_child, right_child)
-
-
-    def fit(self, dataset, target):
-        self.root = self.__build_tree(dataset, target)
-
+        # best_feat, best_thresh = self.__best_split(dataset, target, rnd_feats)
+        # left_part, right_part = self.__split_data(
+        #     dataset[:, best_feat], best_thresh)
+        
+        
+        left_part, right_part = self.split_data(dataset, target)
+        left_child = self.__build_tree(
+            dataset[left_part, :], target[left_part], depth + 1)
+        right_child = self.__build_tree(
+            dataset[right_part, :], target[right_part], depth + 1)
+        return Node(best_feat, best_thresh, left_child, right_child)
 
     def gini(self, groups, target):
         '''
@@ -84,12 +78,12 @@ class DecisionTree:
                 quantity = len(column)
                 ans_sq = []
                 for needed_value in target:
+                    print(f"Group: {column}")
                     all_results = [el[-1] for el in column if el[-1] == needed_value]
                     probability = len(all_results) / quantity
                     ans_sq.append(probability**2)
                 gini_impurity.append((1.0 - sum(ans_sq)) * (quantity / all_samples))
         return sum(gini_impurity)
-
 
     @staticmethod
     def test_split(ind, pivot, dataset):
@@ -110,7 +104,8 @@ class DecisionTree:
             dataset (_type_): group name
             y (_type_): targets, for example [0, 1, 2]
         """
-        # change it - repeated action
+        # if not target:
+        #     target = list(set(row[-1] for row in dataset)) # change it - repeated action
         # print(class_values)
         best_index, pivot_value, best_gini, best_groups = None, inf, inf, None
         for index in range(len(dataset[0])-1):
@@ -119,14 +114,13 @@ class DecisionTree:
                 gini = self.gini(groups, target)
                 if gini < best_gini:
                     # best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
-                    best_index, pivot_value, best_gini = index, row[index], gini
-        
-        return best_index, pivot_value
+                    best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
+        return best_groups
 
-    def __split_data(self, dataset, thresh):
-        left_part = np.argwhere(dataset <= thresh).flatten()
-        right_part = np.argwhere(dataset > thresh).flatten()
-        return left_part, right_part
+
+    def fit(self, dataset, target):
+        self.root = self.__build_tree(dataset, target)
+
 
     def traverse(self, piece_of_data, node: Node):
         """
@@ -173,13 +167,3 @@ class DecisionTree:
               f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
-
-
-clf = DecisionTree(max_depth=10)
-
-data = datasets.load_iris()
-dataset, target = data['data'], data['target']
-clf.fit(dataset, target)
-clf.print_tree(clf.root)
-print(clf.predict(dataset))
-
