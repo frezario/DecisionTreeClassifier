@@ -1,4 +1,10 @@
-from numpy import inf
+'''
+    A module that implements TreeClassifier class.
+'''
+from cgi import print_directory
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
 
 
 class Node:
@@ -12,129 +18,80 @@ class Node:
     def is_leaf(self):
         return self.value is not None
 
-    def gini(self, groups, classes):
-        '''
-        A Gini score gives an idea of how good a split is by how mixed
-        the classes are in the two groups created by the split.
-        
-        A perfect separation results in a Gini score of 0,
-        whereas the worst case split that results in 50/50
-        classes in each group result in a Gini score of 0.5
-        (for a 2 class problem).
 
-        Args:
-            groups (list): a column in a dataset
-            classes (list): a list of possible outcomes (flower types)
-        '''
-        gini_impurity = []
-        all_samples = len(groups) * len(groups[0])
-        for group in groups:
-            if group:
-                quantity = len(group)
-                ans_sq = []
-                for needed_value in classes:
-                    all_results = [el[-1] for el in group if el[-1] == needed_value]
-                    probability = len(all_results) / quantity
-                    ans_sq.append(probability**2)
-                gini_impurity.append((1.0 - sum(ans_sq)) * (quantity / all_samples))
-        return sum(gini_impurity)
-
-class MyDecisionTreeClassifier:
-
-    def __init__(self, max_depth):
+class DecisionTree:
+    def __init__(self, max_depth=15):
         self.max_depth = max_depth
+        self.root = None
 
-    # @staticmethod
-    def gini(self, groups, classes):
-        '''
-        A Gini score gives an idea of how good a split is by how mixed
-        the classes are in the two groups created by the split.
-        
-        A perfect separation results in a Gini score of 0,
-        whereas the worst case split that results in 50/50
-        classes in each group result in a Gini score of 0.5
-        (for a 2 class problem).
+    def _is_finished(self, depth):
+        if (depth >= self.max_depth
+            or self.n_class_labels == 1
+                or self.samples_count < 2):
+            return True
+        return False
 
-        Args:
-            groups (list): a column in a dataset
-            classes (list): a list of possible outcomes (flower types)
-        '''
-        gini_impurity = []
-        all_samples = len(groups) * len(groups[0])
-        for group in groups:
-            if group:
-                quantity = len(group)
-                ans_sq = []
-                for needed_value in classes:
-                    all_results = [el[-1] for el in group if el[-1] == needed_value]
-                    probability = len(all_results) / quantity
-                    ans_sq.append(probability**2)
-                gini_impurity.append((1.0 - sum(ans_sq)) * (quantity / all_samples))
-        return sum(gini_impurity)
+    def _build_tree(self, dataset, target, depth=0):
+        self.samples_count, self.features_count = dataset.shape
+        self.n_class_labels = len(set(target))
 
+        if self._is_finished(depth):
+            most_common_Label = np.argmax(np.bincount(target))
+            return Node(value=most_common_Label)
 
-    def split_data(self, X, y): #-> tuple[int, int]: (data, target)
-        """
-        tests all the possible splits in O(N^2)
-        returns index and threshold value
-        Seperates a table into two lists: satisfy the condition,
-        or doesn't.
-        Args:
-            X (_type_): group name
-            y (_type_): value
-        """
-        m = y.size
-        if m <= 1:
-            return None, None
+        rnd_feats = np.random.choice(
+            self.features_count, self.features_count, replace=False)
+        best_feat, best_thresh = self._best_split(dataset, target, rnd_feats)
+        left_part, right_part = self.__split_data(
+            dataset[:, best_feat], best_thresh)
+        left_child = self._build_tree(
+            dataset[left_part, :], target[left_part], depth + 1)
+        right_child = self._build_tree(
+            dataset[right_part, :], target[right_part], depth + 1)
+        return Node(best_feat, best_thresh, left_child, right_child)
 
-        # Count of each class in the current node.
-        num_parent = [np.sum(y == c) for c in range(self.n_classes_)]
+    def fit(self, dataset, target):
+        self.root = self._build_tree(dataset, target)
 
-        # Gini of current node.
-        best_gini = 1.0 - sum((n / m) ** 2 for n in num_parent)
-        best_idx, best_thr = None, None
+    def gini_impurity(self, target):
+        proportions = np.bincount(target) / len(target)
+        # gini = -np.sum([p * np.log2(p) for p in proportions if p > 0])
+        gini = 1 - np.sum([p*p for p in proportions])
+        return gini
 
-        # Loop through all features.
-        for idx in range(self.n_features_):
-            # Sort data along selected feature.
-            thresholds, classes = zip(*sorted(zip(X[:, idx], y)))
+    def __split_data(self, dataset, thresh):
+        left_part = np.argwhere(dataset <= thresh).flatten()
+        right_part = np.argwhere(dataset > thresh).flatten()
+        return left_part, right_part
 
-            # We could actually split the node according to each feature/threshold pair
-            # and count the resulting population for each class in the children, but
-            # instead we compute them in an iterative fashion, making this for loop
-            # linear rather than quadratic.
-            num_left = [0] * self.n_classes_
-            num_right = num_parent.copy()
-            for i in range(1, m):  # possible split positions
-                c = classes[i - 1]
-                num_left[c] += 1
-                num_right[c] -= 1
-                gini_left = 1.0 - sum(
-                    (num_left[x] / i) ** 2 for x in range(self.n_classes_)
-                )
-                gini_right = 1.0 - sum(
-                    (num_right[x] / (m - i)) ** 2 for x in range(self.n_classes_)
-                )
+    def __information_gain(self, dataset, target, thresh):
+        parent_impurity = self.gini_impurity(target)
+        left_part, right_part = self.__split_data(dataset, thresh)
+        cnt, cnt_left, cnt_right = len(target), \
+            len(left_part), len(right_part)
 
-                # The Gini impurity of a split is the weighted average of the Gini
-                # impurity of the children.
-                gini = (i * gini_left + (m - i) * gini_right) / m
+        if cnt_left == 0 or cnt_right == 0:
+            return 0
 
-                # The following condition is to make sure we don't try to split two
-                # points with identical values for that feature, as it is impossible
-                # (both have to end up on the same side of a split).
-                if thresholds[i] == thresholds[i - 1]:
-                    continue
+        child_impurity = (cnt_left / cnt) * self.gini_impurity(target[left_part]) + \
+            (cnt_right / cnt) * self.gini_impurity(target[right_part])
+        return parent_impurity - child_impurity
 
-                if gini < best_gini:
-                    best_gini = gini
-                    best_idx = idx
-                    best_thr = (thresholds[i] + thresholds[i - 1]) / 2  # midpoint
+    def _best_split(self, dataset, target, features):
+        split = {'score': - 1, 'feat': None, 'thresh': None}
+        for feat in features:
+            X_feat = dataset[:, feat]
+            thresholds = np.unique(X_feat)
+            for thresh in thresholds:
+                score = self.__information_gain(X_feat, target, thresh)
+                if score > split['score']:
+                    split['score'] = score
+                    split['feat'] = feat
+                    split['thresh'] = thresh
 
-        return best_idx, best_thr
+        return split['feat'], split['thresh']
 
-
-    def traverse(self, piece_of_data, node:Node):
+    def traverse(self, piece_of_data, node: Node):
         """
             Traverses the tree right to the leaf recursively.
         Args:
@@ -153,65 +110,36 @@ class MyDecisionTreeClassifier:
         # To the right otherwise
         return self.traverse(piece_of_data, node.right)
 
-    def predict(self, X):
+    def predict(self, dataset):
         """
-            For each row in dataset X (who the fuck names dataset X???), funtions
+            For each row in dataset dataset (who the fuck names dataset dataset???), funtions
             traverses our tree to get to the leaf node. Then, the array of the
             values of each leaf will be returned
         Args:
-            X (iterable of iterables): a dataset. May be an array of arrays.
+            dataset (iterable of iterables): a dataset. May be an array of arrays.
         Returns:
             np.array: _description_
         """
-        predictions = [self.traverse(x, self.root) for x in X]
+        predictions = [self.traverse(dataset, self.root)
+                       for dataset in dataset]
         # return predictions
         return np.array(predictions)
 
     @staticmethod
-    def print_tree(node:Node, depth=0):
+    def print_tree(node: Node, depth=0):
         if node.is_leaf():
-            print('\t' * depth + f'This node is a leaf. It\'s value is {node.value}.')
+            print('\t' * depth +
+                  f'This node is a leaf. It\'s value is {node.value}.')
             return
-        print('\t' * depth + f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
+        print('\t' * depth +
+              f'This node is not terminal one. It\'s treshhold is {node.threshold}.')
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
 
+clf = DecisionTree(max_depth=10)
 
-    def test_split(ind, pivot, dataset):
-        left = [row for row in dataset if row[ind] < pivot]
-        right = [row for row in dataset if row[ind] >= pivot]
-        return left, right
-
-
-    # Select the best split point for a dataset
-    def split_data(dataset):
-        class_values = list(set(row[-1] for row in dataset))
-        print(class_values)
-        best_index, best_gini, best_score, best_groups = inf, inf, inf, None
-        for index in range(len(dataset[0])-1):
-            for row in dataset:
-                groups = test_split(index, row[index], dataset)
-                gini = gini(groups, class_values)
-                if gini < best_score:
-                    best_index, best_gini, best_score, best_groups = index, row[index], gini, groups
-        # return {'index':best_index, 'value':best_gini, 'groups':best_groups}
-        # rewrite the return into oop 
-
-# tree = MyDecisionTreeClassifier(3)
-# print(tree.gini([[[0, 1], [0, 0]], [[1, 1], [1, 1]]], [0, 1]))
-
-from filereader import reading_file
-dataset = reading_file("SecondTask/iris.csv")
-
-dataset = [[2.771244718,1.784783929,0],
-	[1.728571309,1.169761413,0],
-	[3.678319846,2.81281357,0],
-	[3.961043357,2.61995032,0],
-	[2.999208922,2.209014212,0],
-	[7.497545867,3.162953546,1],
-	[9.00220326,3.339047188,1],
-	[7.444542326,0.476683375,1],
-	[10.12493903,3.234550982,1],
-	[6.642287351,3.319983761,1]]
-split = get_split(dataset)
-print('Split: [X%d < %.3f]' % ((split['index']+1), split['value']))
+data = datasets.load_iris()
+dataset, target = data['data'], data['target']
+clf.fit(dataset, target)
+# clf.print_tree(clf.root)
+print(clf.predict(dataset))
