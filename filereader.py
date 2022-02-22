@@ -2,7 +2,7 @@ def reading_file(path_file):
     """
     Reads a csv file, if a path given. Example:
     >>> type(reading_file("iris.csv"))
-    list
+    <class 'list'>
     """
     dataset = []
     with open(path_file, "r", encoding="utf-8") as file:
