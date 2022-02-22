@@ -26,6 +26,7 @@ for test_size in range(1, 10, 1):
         dataset, target, test_size=test_size * 0.1, random_state=1
     )
     clf.fit(dataset_train, target_train)
+    # clf.print_tree(clf.root)
     result = clf.predict(dataset_test)
     print(f"Test size: {100 - test_size * 10} % of dataset. Tree precision:",
           precision(result, target_test))
