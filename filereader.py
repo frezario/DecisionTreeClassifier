@@ -1,4 +1,9 @@
 def reading_file(path_file):
+    """
+    Reads a csv file, if a path given. Example:
+    >>> type(reading_file("iris.csv"))
+    list
+    """
     dataset = []
     with open(path_file, "r", encoding="utf-8") as file:
         file.readline()
@@ -14,4 +19,4 @@ def reading_file(path_file):
             dataset.append(line)
     return dataset
 
-print(reading_file("SecondTask/iris.csv"))
+
