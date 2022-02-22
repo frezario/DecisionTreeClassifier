@@ -32,7 +32,7 @@ class DecisionTree:
         self.features_count = 0
         self.class_count = 0
 
-    def __is_finished(self, depth):
+    def is_complete(self, depth):
         '''
             Returns True if no division can be done and False otherwise.
             (if there is one class only or if max depth exceeded or if
@@ -44,7 +44,7 @@ class DecisionTree:
             return True
         return False
 
-    def __build_tree(self, dataset, target, depth=0):
+    def build_tree(self, dataset, target, depth=0):
         """
             Builds a best possible tree recursively.
             If tree is finished, returns a leaf (a Node with a value).
@@ -56,30 +56,30 @@ class DecisionTree:
         self.samples_count, self.features_count = dataset.shape
         self.class_count = len(set(target))
 
-        if self.__is_finished(depth):
+        if self.is_complete(depth):
             most_common_class = np.argmax(np.bincount(target))
             return Node(value=most_common_class)
         # picking random order of the features
         rand_features = np.random.choice(
             self.features_count, self.features_count, replace=False)
         # creating a split on this node
-        best_feature, best_threshold = self.__best_split(dataset, target, rand_features)
+        best_feature, best_threshold = self.best_split(dataset, target, rand_features)
         # splitting samples into right and left parts
-        left_part, right_part = self.__split_data(
+        left_part, right_part = self.split(
             dataset[:, best_feature], best_threshold)
         # building left subtree
-        left_child = self.__build_tree(
+        left_child = self.build_tree(
             dataset[left_part, :], target[left_part], depth + 1)
         # building right subtree
-        right_child = self.__build_tree(
+        right_child = self.build_tree(
             dataset[right_part, :], target[right_part], depth + 1)
         return Node(best_feature, best_threshold, left_child, right_child)
 
     def fit(self, dataset, target):
         '''
-            A public wrapper for __build_tree() method.
+            A public wrapper for build_tree() method.
         '''
-        self.root = self.__build_tree(dataset, target)
+        self.root = self.build_tree(dataset, target)
 
     def gini_impurity(self, target):
         '''
@@ -89,7 +89,7 @@ class DecisionTree:
         gini = 1 - np.sum([p*p for p in probabilities])
         return gini
 
-    def __split_data(self, dataset, threshold):
+    def split(self, dataset, threshold):
         '''
             Splits samples via threshold.
         '''
@@ -97,13 +97,13 @@ class DecisionTree:
         right_part = np.argwhere(dataset > threshold).flatten()
         return left_part, right_part
 
-    def __information_gain(self, dataset, target, threshold):
+    def gain(self, dataset, target, threshold):
         '''
             Measures information gain (the measure of how much
             impurity we've lost).
         '''
         impurity_before = self.gini_impurity(target)
-        left_part, right_part = self.__split_data(dataset, threshold)
+        left_part, right_part = self.split(dataset, threshold)
         cnt, cnt_left, cnt_right = len(target), len(left_part), len(right_part)
         # The worst case
         if cnt_left == 0 or cnt_right == 0:
@@ -113,7 +113,7 @@ class DecisionTree:
             (cnt_right / cnt) * self.gini_impurity(target[right_part])
         return impurity_before - impurity_after
 
-    def __best_split(self, dataset, target, features):
+    def best_split(self, dataset, target, features):
         '''
             Returns info about split with highest information gain.
         '''
@@ -121,9 +121,9 @@ class DecisionTree:
         split = [-1, None, None]
         for feat in features:
             feature = dataset[:, feat]
-            thresholds = np.unique(feature)
+            thresholds = list(set(feature))
             for threshold in thresholds:
-                score = self.__information_gain(feature, target, threshold)
+                score = self.gain(feature, target, threshold)
                 # if we found better case, we will accept it.
                 if score > split[0]:
                     split[0] = score
@@ -177,4 +177,3 @@ class DecisionTree:
               f'This node is internal. Feature : {node.feature} Treshhold : {node.threshold}.')
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
-
