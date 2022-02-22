@@ -14,6 +14,8 @@ def precision(result, true_result):
 
 clf = DecisionTree(max_depth=15)
 
+print('Learning...')
+
 data = datasets.load_iris()
 dataset, target = data['data'], data['target']
 for test_size in range(1, 10, 1):
