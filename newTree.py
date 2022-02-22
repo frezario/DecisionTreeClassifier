@@ -37,36 +37,28 @@ class DecisionTree:
 
 
     def __build_tree(self, dataset, target, depth=0):
-        dataset = np.array(dataset)
-        print(dataset)
-        if dataset == np.array([]):
-            self.samples_count, self.features_count = 0, 0
-        else:
-            self.samples_count, self.features_count = dataset.shape
-            self.n_class_labels = len(set(target))
-        if self.__is_finished(depth):
-            most_common_Label = np.argmax(np.bincount(target))
-            return Node(value=most_common_Label)
-        # if self.__is_finished(depth):
-        #     most_common_Label = np.argmax(np.bincount(target))
-        #     return Node(value=most_common_Label)
+        self.samples_count, self.features_count = dataset.shape
+        self.class_count = len(set(target))
 
-
-        # rnd_feats = np.random.choice(
-        #     self.features_count, self.features_count, replace=False)
-        # best_feat, best_thresh = self.__best_split(dataset, target, rnd_feats)
-        # left_part, right_part = self.__split_data(
-        #     dataset[:, best_feat], best_thresh)
+        if self.is_complete(depth):
+            most_common_class = np.argmax(np.bincount(target))
+            return Node(value=most_common_class)
         
+        left_part, right_part, best_feat, best_threshold = self.split_data(dataset, target)
         
-        left_part, right_part, best_feat, best_thresh = self.split_data(dataset, target)
-        left_child = self.__build_tree(
-            left_part, list(set([row[-1] for row in left_part])), depth + 1)
-        right_child = self.__build_tree(
-            right_part, list(set([row[-1] for row in right_part])), depth + 1)
-        return Node(best_feat, best_thresh, left_child, right_child)
+        # getting indexes out of samples
+        left_part = [ind for ind in range(len(dataset)) if dataset[ind][best_feat] < best_feat]
+        right_part = [ind for ind in range(len(dataset)) if dataset[ind][best_feat] >= best_feat]
+        
+        # building left subtree
+        left_child = self.build_tree(
+            dataset[left_part, :], target[left_part], depth + 1)
+        # building right subtree
+        right_child = self.build_tree(
+            dataset[right_part, :], target[right_part], depth + 1)
+        return Node(best_feat, best_threshold, left_child, right_child)
 
-    def gini(self, groups, target):
+def gini(self, groups, target):
         '''
         A Gini score gives an idea of how good a split is by how mixed
         the classes are in the two groups created by the split.
@@ -87,12 +79,13 @@ class DecisionTree:
                 quantity = len(column)
                 ans_sq = []
                 for needed_value in target:
-                    # print(f"Group: {column}")
+                    print(f"Group: {column}")
                     all_results = [el[-1] for el in column if el[-1] == needed_value]
                     probability = len(all_results) / quantity
                     ans_sq.append(probability**2)
                 gini_impurity.append((1.0 - sum(ans_sq)) * (quantity / all_samples))
         return sum(gini_impurity)
+
 
     @staticmethod
     def test_split(ind, pivot, dataset):
@@ -116,14 +109,15 @@ class DecisionTree:
         # if not target:
         #     target = list(set(row[-1] for row in dataset)) # change it - repeated action
         # print(class_values)
-        best_index, pivot_value, best_gini, best_groups = None, inf, inf, None
+        best_index, pivot_value, best_gini, best_groups = None, inf, inf, None # self.gini(dataset, target)
         for index in range(len(dataset[0])-1):
             for row in dataset:
                 groups = self.test_split(index, row[index], dataset)
                 gini = self.gini(groups, target)
                 if gini < best_gini:
                     # best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
-                    best_index, pivot_value, best_gini, best_groups = index, row[index], gini, groups
+                    best_index, pivot_value, best_gini = index, row[index], gini
+
         return best_groups[0], best_groups[1], best_index, pivot_value
 
 
