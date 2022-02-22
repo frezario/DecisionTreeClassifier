@@ -2,11 +2,9 @@
     A module that implements TreeClassifier class.
 '''
 import numpy as np
-from sklearn import datasets
-
 
 class Node:
-    def __init__(self, feature=None, threshold=None, left=None, right=None, *, value=None):
+    def __init__(self, feature=None, threshold=None, left=None, right=None, value=None):
         self.feature = feature
         self.threshold = threshold
         self.left = left
@@ -180,11 +178,3 @@ class DecisionTree:
         DecisionTree.print_tree(node.left, depth+1)
         DecisionTree.print_tree(node.right, depth+1)
 
-
-clf = DecisionTree(max_depth=10)
-
-data = datasets.load_iris()
-dataset, target = data['data'], data['target']
-clf.fit(dataset, target)
-clf.print_tree(clf.root)
-print(clf.predict(dataset))
