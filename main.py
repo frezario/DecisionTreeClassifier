@@ -8,6 +8,9 @@ from tree_classifier import DecisionTree
 
 
 def precision(result, true_result):
+    '''
+        Measures the precision of the tree.
+    '''
     precision = np.sum(true_result == result) / len(true_result)
     return precision
 
