@@ -79,7 +79,6 @@ def gini(self, groups, target):
                 quantity = len(column)
                 ans_sq = []
                 for needed_value in target:
-                    print(f"Group: {column}")
                     all_results = [el[-1] for el in column if el[-1] == needed_value]
                     probability = len(all_results) / quantity
                     ans_sq.append(probability**2)
