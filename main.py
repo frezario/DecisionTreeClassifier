@@ -1,35 +1,24 @@
 '''
-    A main module.
+    A main module with examples.
 '''
+from cgi import test
 import numpy as np
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from tree_classifier import DecisionTree
 
-def accuracy(y_true, y_pred):
-    accuracy = np.sum(y_true == y_pred) / len(y_true)
-    return accuracy
+def precision(result, true_result):
+    precision = np.sum(true_result == result) / len(true_result)
+    return precision
 
-# data = datasets.load_breast_cancer()
+clf = DecisionTree(max_depth=15)
+
 data = datasets.load_iris()
-X, y = data['data'], data['target']
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=1
-)
-# print(X_train)
-# print('===============================================================')
-# print(y_train)
-# print('===============================================================')
-# print(X_test)
-# print('===============================================================')
-# print(y_test)
-
-classifier = DecisionTree(max_depth=10)
-classifier.fit(X_train, y_train)
-
-# y_pred = classifier.predict(X_test)
-y_pred = classifier.predict(X_test)
-acc = accuracy(y_test, y_pred)
-
-print("Accuracy:", acc)
+dataset, target = data['data'], data['target']
+for test_size in range(1, 10, 1):
+    dataset_train, dataset_test, target_train, target_test = train_test_split(
+        dataset, target, test_size= test_size * 0.1, random_state=1
+    )
+    clf.fit(dataset_train, target_train)
+    result = clf.predict(dataset_test)
+    print(f"Test size: {100 - test_size * 10} % of dataset. Tree accuracy:", precision(result, target_test))
