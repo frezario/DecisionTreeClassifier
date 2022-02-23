@@ -59,15 +59,6 @@ class DecisionTree:
         if self.is_complete(depth):
             most_common_class = np.argmax(np.bincount(target))
             return Node(value=most_common_class)
-        
-        # picking random order of the features
-        rand_features = np.random.choice(
-            self.features_count, self.features_count, replace=False)
-        # creating a split on this node
-        best_feature, best_threshold = self.best_split(dataset, target, rand_features)
-        # splitting samples into right and left parts
-        left_part, right_part = self.split(
-            dataset[:, best_feature], best_threshold)
 
 
         left_part, right_part, best_feature, best_threshold = self.split_data(dataset, target)
